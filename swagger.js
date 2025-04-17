@@ -5,7 +5,7 @@ const options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "Books API",
+      title: "BiblioLab API",
       version: "1.0.0",
       description: "API pour la gestion de livres et auteurs",
     },
