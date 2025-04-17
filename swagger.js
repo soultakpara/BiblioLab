@@ -12,7 +12,11 @@ const options = {
     servers: [
       {
         url: "http://localhost:4045"
+      },
+      {
+        url: "https://bibliolab.onrender.com"
       }
+
     ]
   },
   apis: ["./routes/*.js"]
