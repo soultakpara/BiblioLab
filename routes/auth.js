@@ -17,9 +17,21 @@ const User = require('../models/User');
  *           schema:
  *             type: object
  *             required:
+ *               - nom
+ *               - prenom
+ *               - email
+ *               - telephone
  *               - username
  *               - password
  *             properties:
+ *               nom:
+ *                 type: string
+ *               prenom:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               telephone:
+ *                 type: string
  *               username:
  *                 type: string
  *               password:
@@ -31,13 +43,14 @@ const User = require('../models/User');
  *         description: Erreur lors de la création
  */
 router.post('/register', async (req, res) => {
-  const { username, password } = req.body;
+  const { nom, prenom, email, telephone, username, password } = req.body;
   try {
     let user = await User.findOne({ username });
     if (user) {
       return res.status(400).json({ msg: 'Utilisateur existe déjà' });
     }
-    user = new User({ username, password });
+
+    user = new User({ nom, prenom, email, telephone, username, password });
     await user.save();
     res.status(201).json({ msg: 'Utilisateur créé' });
   } catch (err) {
