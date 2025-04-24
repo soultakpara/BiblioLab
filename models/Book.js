@@ -12,10 +12,14 @@ const BookSchema = new mongoose.Schema({
     ref: 'Author',
     required: true
   },
-  createdBy: { // Identifiant de l'utilisateur qui a créé ce livre
+  createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  pdf: {
+    type: String, // Chemin vers le fichier PDF
+    required: false
   }
 });
 

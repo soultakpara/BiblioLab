@@ -16,10 +16,23 @@ const options = {
       {
         url: "https://bibliolab.onrender.com"
       }
-
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: []
+      }
     ]
   },
-  apis: ["./routes/*.js"]
+  apis: ["./routes/*.js"] // les routes sont bien prises en compte
 };
 
 const specs = swaggerJsDoc(options);

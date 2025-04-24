@@ -5,11 +5,14 @@ const cors = require('cors');
 
 const app = express();
 
-// ✅ Configuration CORS adaptée à React (localhost:5173)
+// ✅ Autorise plusieurs origines pour les requêtes CORS
+
+
 app.use(cors({
-  origin: 'http://localhost:5173', // frontend en développement
-  credentials: true               // autorise les cookies et headers d'auth
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
+
 
 // ✅ Connexion à MongoDB
 connectDB();
