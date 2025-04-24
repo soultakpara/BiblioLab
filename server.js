@@ -9,9 +9,14 @@ const app = express();
 
 
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Autoriser dynamiquement toutes les origines
+    callback(null, origin);
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
+
 
 
 // ✅ Connexion à MongoDB
