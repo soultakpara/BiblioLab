@@ -20,6 +20,10 @@ const BookSchema = new mongoose.Schema({
   pdf: {
     type: String, // Chemin vers le fichier PDF
     required: false
+  },
+  coverImage: {
+    type: String, // Chemin vers l'image de couverture
+    required: false
   }
 });
 

@@ -5,34 +5,61 @@ const auth = require('../middleware/auth');
 const isAdmin = require('../middleware/IsAdmin');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
-// Configuration Multer pour l'upload de fichiers PDF
-const storage = multer.diskStorage({
+// Création des dossiers d'upload s'ils n'existent pas
+const createUploadDirs = () => {
+  const pdfDir = path.join(__dirname, '../uploads/pdfs');
+  const imgDir = path.join(__dirname, '../uploads/images');
+  if (!fs.existsSync(pdfDir)) fs.mkdirSync(pdfDir, { recursive: true });
+  if (!fs.existsSync(imgDir)) fs.mkdirSync(imgDir, { recursive: true });
+};
+createUploadDirs();
+
+// Configuration Multer pour PDF
+const pdfStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/pdfs');
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname);
-  }
+  },
 });
 
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype === 'application/pdf') {
-    cb(null, true);
-  } else {
-    cb(new Error('Seuls les fichiers PDF sont autorisés'), false);
-  }
-};
+const imageStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/images');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  },
+});
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage: function (req, file, cb) {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, pdfStorage);
+    } else if (file.mimetype.startsWith('image/')) {
+      cb(null, imageStorage);
+    } else {
+      cb(new Error('Format de fichier non supporté'), false);
+    }
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype === 'application/pdf' || file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Seuls les fichiers PDF et images sont autorisés'), false);
+    }
+  }
+});
 
 /**
  * @swagger
  * /api/books:
  *   get:
  *     summary: Récupérer tous les livres
- *     tags:
- *       - Livres
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -53,8 +80,7 @@ router.get('/', auth, async (req, res) => {
  * /api/books:
  *   post:
  *     summary: Créer un nouveau livre
- *     tags:
- *       - Livres
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -101,9 +127,8 @@ router.post('/', auth, async (req, res) => {
  * @swagger
  * /api/books/upload:
  *   post:
- *     summary: Upload d'un livre au format PDF (admin seulement)
- *     tags:
- *       - Livres
+ *     summary: Upload d'un livre avec PDF et image de couverture (admin seulement)
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -128,16 +153,22 @@ router.post('/', auth, async (req, res) => {
  *               pdf:
  *                 type: string
  *                 format: binary
+ *               coverImage:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
- *         description: Livre avec PDF créé
+ *         description: Livre avec fichiers créé
  *       400:
- *         description: Données invalides ou mauvais format de fichier
+ *         description: Données invalides ou fichier manquant
  */
-router.post('/upload', auth, isAdmin, upload.single('pdf'), async (req, res) => {
+router.post('/upload', auth, isAdmin, upload.fields([
+  { name: 'pdf', maxCount: 1 },
+  { name: 'coverImage', maxCount: 1 }
+]), async (req, res) => {
   try {
     const { title, summary, isbn, author } = req.body;
-    if (!title || !author || !req.file) {
+    if (!title || !author || !req.files?.pdf) {
       return res.status(400).json({ message: "Champs requis manquants ou fichier PDF manquant" });
     }
 
@@ -147,7 +178,8 @@ router.post('/upload', auth, isAdmin, upload.single('pdf'), async (req, res) => 
       isbn,
       author,
       createdBy: req.user.id,
-      pdf: req.file.path
+      pdf: req.files.pdf[0].path,
+      coverImage: req.files.coverImage ? req.files.coverImage[0].path : undefined
     });
 
     await newBook.save();
@@ -162,17 +194,15 @@ router.post('/upload', auth, isAdmin, upload.single('pdf'), async (req, res) => 
  * /api/books/{id}:
  *   get:
  *     summary: Récupérer un livre par son ID
- *     tags:
- *       - Livres
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: ID du livre
  *     responses:
  *       200:
  *         description: Détails du livre
@@ -194,17 +224,15 @@ router.get('/:id', auth, async (req, res) => {
  * /api/books/{id}:
  *   put:
  *     summary: Mettre à jour un livre
- *     tags:
- *       - Livres
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: ID du livre
  *     requestBody:
  *       required: true
  *       content:
@@ -247,17 +275,15 @@ router.put('/:id', auth, async (req, res) => {
  * /api/books/{id}:
  *   delete:
  *     summary: Supprimer un livre
- *     tags:
- *       - Livres
+ *     tags: [Livres]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
+ *         required: true
  *         schema:
  *           type: string
- *         required: true
- *         description: ID du livre
  *     responses:
  *       200:
  *         description: Livre supprimé
