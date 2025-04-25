@@ -8,6 +8,7 @@ const User = require('../models/User');
  * /api/auth/register:
  *   post:
  *     summary: Enregistrement d'un nouvel utilisateur
+ *     description: Seuls les utilisateurs standards peuvent s’enregistrer via cette route. Le rôle 'admin' est ignoré même s’il est fourni.
  *     tags:
  *       - Authentification
  *     requestBody:
@@ -36,10 +37,6 @@ const User = require('../models/User');
  *                 type: string
  *               password:
  *                 type: string
- *               role:
- *                 type: string
- *                 enum: [admin, utilisateur]
- *                 description: Rôle de l'utilisateur (par défaut: utilisateur)
  *     responses:
  *       201:
  *         description: Utilisateur créé
@@ -47,7 +44,7 @@ const User = require('../models/User');
  *         description: Erreur lors de la création
  */
 router.post('/register', async (req, res) => {
-  const { nom, prenom, email, telephone, username, password, role } = req.body;
+  const { nom, prenom, email, telephone, username, password } = req.body;
 
   try {
     let user = await User.findOne({ username });
@@ -55,9 +52,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'Utilisateur existe déjà' });
     }
 
-    // Sécurité : on ne permet pas de créer un admin via l'inscription classique
-    const userRole = role === 'admin' ? 'utilisateur' : (role || 'utilisateur');
-
+    // Tous les utilisateurs enregistrés via cette route sont par défaut des "utilisateur"
     user = new User({
       nom,
       prenom,
@@ -65,7 +60,7 @@ router.post('/register', async (req, res) => {
       telephone,
       username,
       password,
-      role: userRole
+      role: 'utilisateur'
     });
 
     await user.save();
@@ -80,6 +75,7 @@ router.post('/register', async (req, res) => {
  * /api/auth/login:
  *   post:
  *     summary: Connexion d'un utilisateur
+ *     description: Retourne un JWT contenant l’ID utilisateur et son rôle (admin ou utilisateur).
  *     tags:
  *       - Authentification
  *     requestBody:
@@ -98,7 +94,7 @@ router.post('/register', async (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: Token JWT
+ *         description: Token JWT avec ID utilisateur et rôle
  *         content:
  *           application/json:
  *             schema:
@@ -107,7 +103,7 @@ router.post('/register', async (req, res) => {
  *                 token:
  *                   type: string
  *       400:
- *         description: Erreur d'authentification
+ *         description: Identifiants invalides
  */
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -124,13 +120,11 @@ router.post('/login', async (req, res) => {
     }
 
     const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
+      id: user.id,
+      role: user.role
     };
 
-    jwt.sign(payload, 'secretkey', { expiresIn: '1h' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET || 'secretkey', { expiresIn: '1h' }, (err, token) => {
       if (err) throw err;
       res.json({ token });
     });
