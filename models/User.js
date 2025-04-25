@@ -13,7 +13,9 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   telephone: {
     type: String,
@@ -22,7 +24,9 @@ const UserSchema = new mongoose.Schema({
   username: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    lowercase: true,
+    trim: true
   },
   password: {
     type: String,
@@ -33,12 +37,14 @@ const UserSchema = new mongoose.Schema({
     enum: ['admin', 'utilisateur'],
     default: 'utilisateur'
   }
+}, {
+  timestamps: true // pour savoir quand un utilisateur a été créé/modifié
 });
 
-// Hachage du mot de passe avant sauvegarde
+// Middleware pour hacher le mot de passe
 UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
   try {
+    if (!this.isModified('password')) return next();
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
@@ -47,9 +53,9 @@ UserSchema.pre('save', async function (next) {
   }
 });
 
-// Comparaison des mots de passe
-UserSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+// Méthode pour comparer le mot de passe
+UserSchema.methods.comparePassword = function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = mongoose.model('User', UserSchema);
