@@ -5,19 +5,23 @@ const cors = require('cors');
 
 const app = express();
 
-// ✅ Autorise plusieurs origines pour les requêtes CORS
-
+// ✅ Autoriser CORS selon l'environnement
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://bibliolab.onrender.com'
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Autoriser dynamiquement toutes les origines
-    callback(null, origin);
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
-
-
 
 // ✅ Connexion à MongoDB
 connectDB();
@@ -36,4 +40,4 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // ✅ Lancement du serveur
 const PORT = process.env.PORT || 4045;
-app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));
