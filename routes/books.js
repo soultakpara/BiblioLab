@@ -34,7 +34,7 @@ const upload = multer({
   }
 });
 
-// ✅ Routes API (le reste ne change pas trop)
+// ✅ Route pour uploader un livre
 router.post('/upload', auth, isAdmin, upload.fields([
   { name: 'pdf', maxCount: 1 },
   { name: 'coverImage', maxCount: 1 }
@@ -51,7 +51,7 @@ router.post('/upload', auth, isAdmin, upload.fields([
       isbn,
       author,
       createdBy: req.user.id,
-      pdf: req.files.pdf[0].path,  // fichier sauvegardé
+      pdf: req.files.pdf[0].path,
       coverImage: req.files.coverImage ? req.files.coverImage[0].path : undefined
     });
 
@@ -63,6 +63,15 @@ router.post('/upload', auth, isAdmin, upload.fields([
   }
 });
 
-// ✅ Le reste de tes routes (GET, POST, PUT, DELETE) reste pareil !
+// ✅ Nouvelle route GET pour récupérer tous les livres
+router.get('/', async (req, res) => {
+  try {
+    const livres = await Book.find().populate('author');
+    res.json(livres);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Erreur lors de la récupération des livres." });
+  }
+});
 
 module.exports = router;
